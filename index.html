@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Candy Crush Unlimited</title>
+  <style>
+    :root {
+      --primary-bg: #1e1e2e;
+      --panel-bg: rgba(0, 0, 0, 0.7);
+      --text-color: #fff;
+      --primary-btn: #ff6b6b;
+      --primary-btn-hover: #ff4757;
+      --help-btn: #4da6ff;
+      --help-btn-hover: #1a8cff;
+      --scoreboard-bg: rgba(0, 0, 0, 0.7);
+      --modal-bg: #2d2d3a;
+      --modal-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+      --level-complete-bg: rgba(0, 150, 0, 0.8);
+    }
+    
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: var(--primary-bg);
+      color: var(--text-color);
+      user-select: none;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    
+    #gameUI {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      top: 0;
+      left: 0;
+    }
+    
+    #scoreboard {
+      position: absolute; 
+      top: 15px; 
+      left: 15px;
+      background: var(--scoreboard-bg); 
+      padding: 15px; 
+      border-radius: 12px;
+      font-size: 1.2em;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      pointer-events: all;
+      z-index: 11;
+    }
+    
+    .button {
+      pointer-events: all;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    #topButtons {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      gap: 10px;
+      z-index: 11;
+    }
+    
+    #resetButton {
+      background-color: var(--primary-btn);
+      color: white;
+    }
+    
+    #resetButton:hover {
+      background-color: var(--primary-btn-hover);
+    }
+    
+    #helpButton, #hintButton {
+      background-color: var(--help-btn);
+      color: white;
+    }
+    
+    #helpButton:hover, #hintButton:hover {
+      background-color: var(--help-btn-hover);
+    }
+    
+    #moveCounter, #targetScore, #levelIndicator {
+      margin-top: 8px;
+      font-weight: bold;
+    }
+    
+    #helpModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--modal-bg);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: var(--modal-shadow);
+      z-index: 1000;
+      color: white;
+      max-width: 500px;
+      width: 80%;
+      pointer-events: all;
+    }
+    
+    #helpModal h2 {
+      margin-top: 0;
+      color: #ff6b6b;
+    }
+    
+    #helpModal ul {
+      padding-left: 20px;
+      line-height: 1.5;
+    }
+    
+    #helpModal button {
+      margin-top: 15px;
+      background: var(--primary-btn);
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+    
+    #helpModal button:hover {
+      background: var(--primary-btn-hover);
+    }
+    
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 999;
+      pointer-events: all;
+    }
+    
+    #levelCompleteModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--level-complete-bg);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: var(--modal-shadow);
+      z-index: 1001;
+      color: white;
+      text-align: center;
+      pointer-events: all;
+    }
+    
+    #levelCompleteModal h2 {
+      margin-top: 0;
+    }
+    
+    #levelCompleteModal button {
+      margin-top: 15px;
+      background: #fff;
+      border: none;
+      color: #006400;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      min-width: 120px;
+    }
+    
+    #levelCompleteModal button:hover {
+      background: #f0f0f0;
+    }
+    
+    #gameStatus {
+      margin-top: 8px;
+      font-weight: bold;
+    }
+    
+    .score-animation {
+      position: absolute;
+      color: white;
+      font-weight: bold;
+      font-size: 1.5em;
+      z-index: 100;
+      pointer-events: none;
+      text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+      animation: scoreFloat 1.5s ease-out forwards;
+    }
+    
+    @keyframes scoreFloat {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+    }
+    
+    .hint-highlight {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    
+    canvas {
+      display: block;
+      touch-action: none;
+      margin: 0 auto; /* Center the canvas */
+    }
+    
+    /* Updated styles for layout - removed fixed positioning */
+    .navbar {
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 20px 0;
+      text-align: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .game-header {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      font-size: 1.1em;
+    }
+
+    .game-container {
+      position: relative;
+      width: 100%;
+      height: 70vh; /* Set a fixed height for the game area */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 1; /* Let the game area take available space */
+    }
+
+    .footer {
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      font-size: 0.9em;
+    }
+
+    .warning {
+      color: #ff6b6b;
+      font-style: italic;
+      display: block;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    Candy Crush Unlimited Survival
+  </div>
+
+  <div class="game-header">
+    Make a right move and proceed forward,<br>
+    Make a wrong one and be trapped in infinite candy loop
+    <span class="warning">(Use New Game button to start again)</span>
+  </div>
+
+  <div class="game-container">
+    <!-- Three.js canvas will be inserted here -->
+    <div id="gameUI">
+      <div id="scoreboard">
+        <div>Score: <span id="score">0</span></div>
+        <div id="targetScore">Target: 100</div>
+        <div id="moveCounter">Moves: <span id="moves">20</span></div>
+        <div id="levelIndicator">Level: <span id="level">1</span></div>
+        <div id="gameStatus"></div>
+      </div>
+      <div id="topButtons" style="display: flex;flex-direction: column;">
+        <button id="hintButton" class="button">Hint</button>
+        <button id="helpButton" class="button">Help</button>
+        <button id="resetButton" class="button">New Game</button>
+      </div>
+    </div>
+  </div>
+  
+  
+  <div id="overlay"></div>
+  
+  <div id="helpModal">
+    <h2>How to Play</h2>
+    <ul>
+      <li>Click one candy, then click an adjacent candy to swap them.</li>
+      <li>Match 3 or more of the same color to score points.</li>
+      <li>Special matches will create power-ups:</li>
+      <li>Match.4 in a row: Creates a striped candy that clears an entire row or column.</li>
+      <li>Match 5 in a row: Creates a color bomb that clears all candies of the same color.</li>
+      <li>Complete the target score within the limited moves to advance to the next level.</li>
+      <li>Click the Hint button if you're stuck!</li>
+    </ul>
+    <button id="closeHelp">Got it!</button>
+  </div>
+  
+  <div id="levelCompleteModal">
+    <h2>Level Complete!</h2>
+    <p>You scored <span id="finalScore">0</span> points!</p>
+    <button id="nextLevel">Next Level</button>
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
+   <script>
+    // Game constants and variables
+    const BOARD_SIZE = 8;
+    const CANDY_TYPES = 6;
+    const candyColors = [
+      0xff6b6b, // Red
+      0x4ecdc4, // Teal
+      0xffd166, // Yellow
+      0x6a75ca, // Purple
+      0x83c5be, // Blue
+      0xffb347  // Orange
+    ];
+    
+    // Game state
+    let board = [];
+    let score = 0;
+    let selectedCandy = null;
+    let isAnimating = false;
+    let movesLeft = 20;
+    let targetScore = 100;
+    let currentLevel = 1;
+    let hintTimeout = null;
+    let specialCandies = [];
+    
+    // ThreeJS setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-5, 5, 5, -5, 1, 100);
+    camera.position.z = 10;
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+    
+    // Background
+    const backgroundGeometry = new THREE.PlaneGeometry(20, 20);
+    const backgroundMaterial = new THREE.MeshBasicMaterial({
+      color: 0x222230,
+    });
+    const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+    backgroundMesh.position.z = -1;
+    scene.add(backgroundMesh);
+    
+    // Grid lines
+    const gridGroup = new THREE.Group();
+    scene.add(gridGroup);
+    
+    function createGrid() {
+      // Create a grid outline
+      const gridMaterial = new THREE.LineBasicMaterial({ color: 0x444455, linewidth: 1 });
+      
+      // Board outline
+      const boardOutlineGeometry = new THREE.BufferGeometry();
+      const size = BOARD_SIZE * 0.5;
+      const boardOutlineVertices = new Float32Array([
+        -size, -size, 0,
+        size, -size, 0,
+        size, size, 0,
+        -size, size, 0,
+        -size, -size, 0
+      ]);
+      boardOutlineGeometry.setAttribute('position', new THREE.BufferAttribute(boardOutlineVertices, 3));
+      const boardOutline = new THREE.Line(boardOutlineGeometry, gridMaterial);
+      gridGroup.add(boardOutline);
+      
+      // Grid lines
+      for (let i = 1; i < BOARD_SIZE; i++) {
+        const pos = i - BOARD_SIZE/2;
+        
+        // Horizontal line
+        const horizontalGeometry = new THREE.BufferGeometry();
+        const horizontalVertices = new Float32Array([
+          -size, pos, 0,
+          size, pos, 0
+        ]);
+        horizontalGeometry.setAttribute('position', new THREE.BufferAttribute(horizontalVertices, 3));
+        const horizontalLine = new THREE.Line(horizontalGeometry, gridMaterial);
+        gridGroup.add(horizontalLine);
+        
+        // Vertical line
+        const verticalGeometry = new THREE.BufferGeometry();
+        const verticalVertices = new Float32Array([
+          pos, -size, 0,
+          pos, size, 0
+        ]);
+        verticalGeometry.setAttribute('position', new THREE.BufferAttribute(verticalVertices, 3));
+        const verticalLine = new THREE.Line(verticalGeometry, gridMaterial);
+        gridGroup.add(verticalLine);
+      }
+    }
+    
+    createGrid();
+    
+    const candyGroup = new THREE.Group();
+    scene.add(candyGroup);
+    
+    // Enhanced lighting for better visuals
+    const frontLight = new THREE.PointLight(0xffffff, 0.8);
+    frontLight.position.set(0, 0, 10);
+    scene.add(frontLight);
+    
+    const topRightLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    topRightLight.position.set(2, 2, 3);
+    scene.add(topRightLight);
+    
+    const ambientLight = new THREE.AmbientLight(0x444444, 0.5);
+    scene.add(ambientLight);
+    
+    // Special candy types
+    const CANDY_NORMAL = 0;
+    const CANDY_STRIPED_H = 1;
+    const CANDY_STRIPED_V = 2;
+    const CANDY_COLOR_BOMB = 3;
+    
+    function randomCandy() {
+      return {
+        colorIndex: Math.floor(Math.random() * CANDY_TYPES),
+        special: CANDY_NORMAL
+      };
+    }
+    
+    function createCandy(x, y, candyInfo) {
+      const { colorIndex, special } = candyInfo;
+      
+      let geometry;
+      let material;
+      let candy;
+      
+      // Base material
+      material = new THREE.MeshPhongMaterial({ 
+        color: candyColors[colorIndex], 
+        shininess: 150, 
+        specular: 0xffffff 
+      });
+      
+      if (special === CANDY_COLOR_BOMB) {
+        // Color bomb (sphere)
+        geometry = new THREE.SphereGeometry(0.45, 16, 16);
+        candy = new THREE.Mesh(geometry, material);
+        
+        // Add glow effect
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.3
+        });
+        const glowSphere = new THREE.Mesh(
+          new THREE.SphereGeometry(0.55, 16, 16),
+          glowMaterial
+        );
+        candy.add(glowSphere);
+        
+      } else if (special === CANDY_STRIPED_H || special === CANDY_STRIPED_V) {
+        // Striped candy
+        geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+        candy = new THREE.Mesh(geometry, material);
+        
+        // Add stripes
+        const stripesMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.7
+        });
+        
+        const stripeSize = 0.05;
+        const stripeSpacing = 0.2;
+        const numberOfStripes = 5;
+        
+        for (let i = 0; i < numberOfStripes; i++) {
+          let stripeGeometry;
+          
+          if (special === CANDY_STRIPED_H) {
+            stripeGeometry = new THREE.BoxGeometry(0.91, stripeSize, 0.91);
+            const stripe = new THREE.Mesh(stripeGeometry, stripesMaterial);
+            stripe.position.y = -0.45 + i * stripeSpacing;
+            candy.add(stripe);
+          } else {
+            stripeGeometry = new THREE.BoxGeometry(stripeSize, 0.91, 0.91);
+            const stripe = new THREE.Mesh(stripeGeometry, stripesMaterial);
+            stripe.position.x = -0.45 + i * stripeSpacing;
+            candy.add(stripe);
+          }
+        }
+      } else {
+        // Normal candy
+        geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+        candy = new THREE.Mesh(geometry, material);
+      }
+      
+      candy.position.set(x - BOARD_SIZE/2 + 0.5, y - BOARD_SIZE/2 + 0.5, 0);
+      candy.userData = { 
+        x, 
+        y, 
+        colorIndex, 
+        special 
+      };
+      
+      // Add candy to tracking array if special
+      if (special !== CANDY_NORMAL) {
+        specialCandies.push(candy);
+      }
+      
+      return candy;
+    }
+    
+    function initBoard() {
+      board = [];
+      candyGroup.clear();
+      specialCandies = [];
+      score = 0;
+      document.getElementById("score").innerText = score;
+      document.getElementById("moves").innerText = movesLeft;
+      document.getElementById("level").innerText = currentLevel;
+      document.getElementById("targetScore").innerText = `Target: ${targetScore}`;
+      
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        const row = [];
+        for (let x = 0; x < BOARD_SIZE; x++) {
+          const candyInfo = randomCandy();
+          const candy = createCandy(x, y, candyInfo);
+          row.push({ 
+            colorIndex: candyInfo.colorIndex, 
+            special: candyInfo.special, 
+            mesh: candy 
+          });
+          candyGroup.add(candy);
+        }
+        board.push(row);
+      }
+      
+      // Remove any initial matches
+      let matches;
+      do {
+        matches = getMatches();
+        if (matches.length > 0) {
+          for (let [x, y] of matches) {
+            board[y][x].colorIndex = Math.floor(Math.random() * CANDY_TYPES);
+            const material = board[y][x].mesh.material;
+            if (Array.isArray(material)) {
+              material[0].color.setHex(candyColors[board[y][x].colorIndex]);
+            } else {
+              material.color.setHex(candyColors[board[y][x].colorIndex]);
+            }
+          }
+        }
+      } while (matches.length > 0);
+    }
+    
+    function findPotentialMatches() {
+      // Check every possible swap to see if it would create a match
+      const potentialMoves = [];
+      
+      // Horizontal swaps
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE - 1; x++) {
+          // Swap temporarily
+          const temp = board[y][x].colorIndex;
+          board[y][x].colorIndex = board[y][x+1].colorIndex;
+          board[y][x+1].colorIndex = temp;
+          
+          // Check for matches
+          const matches = getMatchesNoClear();
+          
+          // Swap back
+          board[y][x+1].colorIndex = board[y][x].colorIndex;
+          board[y][x].colorIndex = temp;
+          
+          if (matches.length > 0) {
+            potentialMoves.push([x, y, x+1, y]);
+          }
+        }
+      }
+      
+      // Vertical swaps
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        for (let y = 0; y < BOARD_SIZE - 1; y++) {
+          // Swap temporarily
+          const temp = board[y][x].colorIndex;
+          board[y][x].colorIndex = board[y+1][x].colorIndex;
+          board[y+1][x].colorIndex = temp;
+          
+          // Check for matches
+          const matches = getMatchesNoClear();
+          
+          // Swap back
+          board[y+1][x].colorIndex = board[y][x].colorIndex;
+          board[y][x].colorIndex = temp;
+          
+          if (matches.length > 0) {
+            potentialMoves.push([x, y, x, y+1]);
+          }
+        }
+      }
+      
+      return potentialMoves;
+    }
+    
+    function getMatchesNoClear() {
+      let matches = [];
+      
+      // Check horizontal matches
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE - 2; x++) {
+          const colorIndex = board[y][x].colorIndex;
+          if (colorIndex === board[y][x+1].colorIndex && colorIndex === board[y][x+2].colorIndex) {
+            // Find how long this match is
+            let matchLength = 3;
+            while (x + matchLength < BOARD_SIZE && board[y][x+matchLength].colorIndex === colorIndex) {
+              matchLength++;
+            }
+            
+            for (let i = 0; i < matchLength; i++) {
+              matches.push([x+i, y]);
+            }
+            
+            x += matchLength - 1; // Skip ahead
+          }
+        }
+      }
+      
+      // Check vertical matches
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        for (let y = 0; y < BOARD_SIZE - 2; y++) {
+          const colorIndex = board[y][x].colorIndex;
+          if (colorIndex === board[y+1][x].colorIndex && colorIndex === board[y+2][x].colorIndex) {
+            // Find how long this match is
+            let matchLength = 3;
+            while (y + matchLength < BOARD_SIZE && board[y+matchLength][x].colorIndex === colorIndex) {
+              matchLength++;
+            }
+            
+            for (let i = 0; i < matchLength; i++) {
+              matches.push([x, y+i]);
+            }
+            
+            y += matchLength - 1; // Skip ahead
+          }
+        }
+      }
+      
+      // Remove duplicates (e.g., T or L shaped matches)
+      return [...new Set(matches.map(JSON.stringify))].map(JSON.parse);
+    }
+    
+    function getMatches() {
+      let matches = [];
+      let specialCandyCreationInfo = null;
+      
+      // Check horizontal matches
+      for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE - 2; x++) {
+          const colorIndex = board[y][x].colorIndex;
+          if (colorIndex === board[y][x+1].colorIndex && colorIndex === board[y][x+2].colorIndex) {
+            // Find how long this match is
+            let matchLength = 3;
+            while (x + matchLength < BOARD_SIZE && board[y][x+matchLength].colorIndex === colorIndex) {
+              matchLength++;
+            }
+            
+            const matchPositions = [];
+            for (let i = 0; i < matchLength; i++) {
+              matchPositions.push([x+i, y]);
+            }
+            
+            // Check for special candy creation
+            if (matchLength >= 4) {
+              specialCandyCreationInfo = {
+                positions: matchPositions,
+                special: matchLength >= 5 ? CANDY_COLOR_BOMB : CANDY_STRIPED_H,
+                colorIndex: colorIndex
+              };
+            }
+            
+            matches = matches.concat(matchPositions);
+            x += matchLength - 1; // Skip ahead
+          }
+        }
+      }
+      
+      // Check vertical matches
+      for (let x = 0; x < BOARD_SIZE; x++) {
+        for (let y = 0; y < BOARD_SIZE - 2; y++) {
+          const colorIndex = board[y][x].colorIndex;
+          if (colorIndex === board[y+1][x].colorIndex && colorIndex === board[y+2][x].colorIndex) {
+            // Find how long this match is
+            let matchLength = 3;
+            while (y + matchLength < BOARD_SIZE && board[y+matchLength][x].colorIndex === colorIndex) {
+              matchLength++;
+            }
+            
+            const matchPositions = [];
+            for (let i = 0; i < matchLength; i++) {
+              matchPositions.push([x, y+i]);
+            }
+            
+            // If we already have a longer match don't override it
+            if (!specialCandyCreationInfo || 
+                (matchLength > 4 && specialCandyCreationInfo.special !== CANDY_COLOR_BOMB)) {
+              specialCandyCreationInfo = {
+                positions: matchPositions,
+                special: matchLength >= 5 ? CANDY_COLOR_BOMB : CANDY_STRIPED_V,
+                colorIndex: colorIndex
+              };
+            }
+            
+            matches = matches.concat(matchPositions);
+            y += matchLength - 1; // Skip ahead
+          }
+        }
+      }
+      
+      // Remove duplicates (e.g., T or L shaped matches)
+      const uniqueMatches = [...new Set(matches.map(JSON.stringify))].map(JSON.parse);
+      
+      // Return both the matches and special candy creation info
+      return { 
+        matches: uniqueMatches, 
+        specialCandyCreationInfo 
+      };
+    }
+    
+    function showScoreAnimation(x, y, points) {
+      const worldPos = new THREE.Vector3(
+        x - BOARD_SIZE/2 + 0.5, 
+        y - BOARD_SIZE/2 + 0.5, 
+        0
+      );
+      
+      // Project the 3D position to screen coordinates
+      const screenPos = worldPos.clone();
+      screenPos.project(camera);
+      
+      const screenX = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+      const screenY = (-screenPos.y * 0.5 + 0.5) * window.innerHeight;
+      
+      // Create the score animation element
+      const scoreEl = document.createElement('div');
+      scoreEl.className = 'score-animation';
+      scoreEl.textContent = `+${points}`;
+      scoreEl.style.left = `${screenX}px`;
+      scoreEl.style.top = `${screenY}px`;
+      
+      document.body.appendChild(scoreEl);
+      
+      // Remove the element after animation completes
+      setTimeout(() => {
+        scoreEl.remove();
+      }, 1500);
+    }
+    
+    function processMatches() {
+      if (isAnimating) return false;
+      
+      const matchResult = getMatches();
+      const matches = matchResult.matches;
+      const specialCandyInfo = matchResult.specialCandyCreationInfo;
+      
+      if (matches.length === 0) {
+        // Check if there are no more possible moves
+        const potentialMoves = findPotentialMatches();
+        if (potentialMoves.length === 0) {
+          // Reshuffle the board
+          document.getElementById("gameStatus").innerText = "No moves available - Reshuffling!";
+          setTimeout(() => {
+            reshuffleBoard();
+            document.getElementById("gameStatus").innerText = "";
+          }, 1000);
+        }
+        return false;
+      }
+      
+      isAnimating = true;
+      
+      // First, activate any special candies in the match
+      const specialsActivated = activateSpecialCandies(matches);
+      
+      // Calculate points (more candies = more points)
+      const points = matches.length * 10 + (specialsActivated ? 50 : 0);
+      
+      // Update score
+      score += points;
+      document.getElementById("score").innerText = score;
+      
+      // Show score animation for the first match
+      if (matches.length > 0) {
+        const [x, y] = matches[0];
+        if (board[y] && board[y][x]) { // Add null check
+          showScoreAnimation(x, y, points);
+        }
+      }
+      
+      // Remove matched candies
+      removeMatches(matches);
+      
+      // Create special candy if applicable
+      if (specialCandyInfo && !specialsActivated) {
+        try {
+          createSpecialCandy(specialCandyInfo);
+        } catch (error) {
+          console.warn('Failed to create special candy:', error);
+        }
+      }
+      
+      // Fill gaps by dropping candies
+      setTimeout(() => {
+        dropCandies();
+        renderBoard();
+        
+        // Check for cascading matches after dropping
+        setTimeout(() => {
+          isAnimating = false;
+          const newMatches = getMatches().matches;
+          if (newMatches.length > 0) {
+            processMatches(); // Continue the cascade
+          } else {
+            // Check for level completion
+            checkLevelStatus();
+          }
+        }, 500);
+      }, 300);
+      
+      return true;
+    }
+    
+    function createSpecialCandy(specialInfo) {
+      // Find a valid position for the special candy
+      const validPositions = specialInfo.positions.filter(([x, y]) => board[y] && board[y][x]);
+      if (validPositions.length === 0) return; // Exit if no valid positions found
+      
+      // Choose a position for the special candy
+      const [x, y] = validPositions[Math.floor(Math.random() * validPositions.length)];
+      
+      // Remove old candy if it exists
+      if (board[y][x] && board[y][x].mesh) {
+        candyGroup.remove(board[y][x].mesh);
+      }
+      
+      // Create the special candy
+      const candyInfo = {
+        colorIndex: specialInfo.colorIndex,
+        special: specialInfo.special
+      };
+      
+      const specialCandy = createCandy(x, y, candyInfo);
+      board[y][x] = {
+        colorIndex: specialInfo.colorIndex,
+        special: specialInfo.special,
+        mesh: specialCandy
+      };
+      
+      candyGroup.add(specialCandy);
+    }
+    
+    function activateSpecialCandies(matches) {
+      let activated = false;
+      
+      // First check if any special candies are in the matches
+      for (const [x, y] of matches) {
+        if (board[y][x].special !== CANDY_NORMAL) {
+          const special = board[y][x].special;
+          const colorIndex = board[y][x].colorIndex;
+          
+          if (special === CANDY_STRIPED_H) {
+            // Clear entire row
+            for (let i = 0; i < BOARD_SIZE; i++) {
+              if (!matches.some(m => m[0] === i && m[1] === y)) {
+                matches.push([i, y]);
+              }
+            }
+            activated = true;
+          } 
+          else if (special === CANDY_STRIPED_V) {
+            // Clear entire column
+            for (let i = 0; i < BOARD_SIZE; i++) {
+              if (!matches.some(m => m[0] === x && m[1] === i)) {
+                matches.push([x, i]);
+              }
+            }
+            activated = true;
+          } 
+          else if (special === CANDY_COLOR_BOMB) {
+            // Clear all candies of the same color
+            for (let j = 0; j < BOARD_SIZE; j++) {
+              for (let i = 0; i < BOARD_SIZE; i++) {
+                if (board[j][i].colorIndex === colorIndex && 
+                        !matches.some(m => m[0] === i && m[1] === j)) {
+                      matches.push([i, j]);
+                    }
+                  }
+                }
+                activated = true;
+              }
+            }
+          }
+          
+          return activated;
+        }
+        
+        function removeMatches(matches) {
+          // Visual effect of candies disappearing
+          for (const [x, y] of matches) {
+            // Remove from special candies tracking array if needed
+            if (board[y][x].special !== CANDY_NORMAL) {
+              const meshIndex = specialCandies.findIndex(c => 
+                c.userData.x === x && c.userData.y === y);
+              if (meshIndex >= 0) {
+                specialCandies.splice(meshIndex, 1);
+              }
+            }
+            
+            // Animate the candy disappearing
+            const candy = board[y][x].mesh;
+            if (candy) {
+              // Shrink and fade out
+              new TWEEN.Tween(candy.scale)
+                .to({ x: 0.1, y: 0.1, z: 0.1 }, 200)
+                .start();
+              
+              new TWEEN.Tween(candy.position)
+                .to({ z: 0.5 }, 200)
+                .start();
+              
+              // Remove from scene after animation
+              setTimeout(() => {
+                candyGroup.remove(candy);
+              }, 200);
+            }
+            
+            // Mark position as empty
+            board[y][x] = null;
+          }
+        }
+        
+        function dropCandies() {
+          // Drop existing candies to fill gaps
+          for (let x = 0; x < BOARD_SIZE; x++) {
+            let emptySpaces = 0;
+            
+            // Process from bottom to top
+            for (let y = BOARD_SIZE - 1; y >= 0; y--) {
+              if (!board[y][x]) {
+                emptySpaces++;
+              } else if (emptySpaces > 0) {
+                // Move this candy down by the number of empty spaces
+                const newY = y + emptySpaces;
+                board[newY][x] = board[y][x];
+                board[y][x] = null;
+                
+                // Update the mesh position with animation
+                const candy = board[newY][x].mesh;
+                candy.userData.y = newY;
+                
+                new TWEEN.Tween(candy.position)
+                  .to({ 
+                    y: newY - BOARD_SIZE/2 + 0.5 
+                  }, 300)
+                  .easing(TWEEN.Easing.Bounce.Out)
+                  .start();
+              }
+            }
+            
+            // Create new candies at the top
+            for (let y = 0; y < emptySpaces; y++) {
+              const candyInfo = randomCandy();
+              const candy = createCandy(x, y, candyInfo);
+              
+              // Start from above the board
+              candy.position.y = -BOARD_SIZE/2 + 0.5 - (emptySpaces - y);
+              
+              // Animate dropping in
+              new TWEEN.Tween(candy.position)
+                .to({ 
+                  y: y - BOARD_SIZE/2 + 0.5 
+                }, 300)
+                .easing(TWEEN.Easing.Bounce.Out)
+                .start();
+              
+              board[y][x] = {
+                colorIndex: candyInfo.colorIndex,
+                special: candyInfo.special,
+                mesh: candy
+              };
+              
+              candyGroup.add(candy);
+            }
+          }
+        }
+        
+        function renderBoard() {
+          for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+              if (board[y][x] && board[y][x].mesh) {
+                // Update color and position if needed
+                const candy = board[y][x].mesh;
+                const material = candy.material;
+                
+                if (Array.isArray(material)) {
+                  material[0].color.setHex(candyColors[board[y][x].colorIndex]);
+                } else {
+                  material.color.setHex(candyColors[board[y][x].colorIndex]);
+                }
+                
+                candy.position.x = x - BOARD_SIZE/2 + 0.5;
+                candy.position.y = y - BOARD_SIZE/2 + 0.5;
+              }
+            }
+          }
+        }
+        
+        function checkLevelStatus() {
+          // Check if the target score is reached
+          if (score >= targetScore) {
+            document.getElementById("finalScore").innerText = score;
+            document.getElementById("levelCompleteModal").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+          } else if (movesLeft <= 0) {
+            // Game over - out of moves
+            document.getElementById("gameStatus").innerText = "Game Over! No more moves.";
+            setTimeout(() => {
+              initGame();
+            }, 2000);
+          }
+        }
+        
+        function reshuffleBoard() {
+          isAnimating = true;
+          
+          // Gather all current candy colors
+          const currentColors = [];
+          for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+              if (board[y][x]) {
+                currentColors.push(board[y][x].colorIndex);
+              }
+            }
+          }
+          
+          // Shuffle the colors
+          for (let i = currentColors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [currentColors[i], currentColors[j]] = [currentColors[j], currentColors[i]];
+          }
+          
+          // Apply the shuffled colors to the board
+          let colorIndex = 0;
+          for (let y = 0; y < BOARD_SIZE; y++) {
+            for (let x = 0; x < BOARD_SIZE; x++) {
+              if (board[y][x]) {
+                board[y][x].colorIndex = currentColors[colorIndex++];
+                const material = board[y][x].mesh.material;
+                if (Array.isArray(material)) {
+                  material[0].color.setHex(candyColors[board[y][x].colorIndex]);
+                } else {
+                  material.color.setHex(candyColors[board[y][x].colorIndex]);
+                }
+              }
+            }
+          }
+          
+          // Ensure we have at least one valid move
+          const potentialMoves = findPotentialMatches();
+          if (potentialMoves.length === 0) {
+            // Try again if no valid moves
+            reshuffleBoard();
+          } else {
+            isAnimating = false;
+          }
+        }
+        
+        function showHint() {
+          if (isAnimating) return;
+          
+          // Reset any previous hints
+          clearHints();
+          
+          // Find all potential moves
+          const potentialMoves = findPotentialMatches();
+          
+          if (potentialMoves.length > 0) {
+            // Pick a random move to hint
+            const hint = potentialMoves[Math.floor(Math.random() * potentialMoves.length)];
+            
+            // Highlight the two candies
+            const [x1, y1, x2, y2] = hint;
+            addHintHighlight(x1, y1);
+            addHintHighlight(x2, y2);
+            
+            // Clear hint after 2 seconds
+            hintTimeout = setTimeout(clearHints, 2000);
+          }
+        }
+        
+        function addHintHighlight(x, y) {
+          const candy = board[y][x].mesh;
+          
+          // Create a glow effect
+          const glowGeometry = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+          const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.3
+          });
+          
+          const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+          glowMesh.position.copy(candy.position);
+          glowMesh.userData.isHint = true;
+          
+          candyGroup.add(glowMesh);
+          
+          // Add pulsing animation
+          new TWEEN.Tween(glowMaterial)
+            .to({ opacity: 0.6 }, 500)
+            .repeat(Infinity)
+            .yoyo(true)
+            .start();
+        }
+        
+        function clearHints() {
+          if (hintTimeout) {
+            clearTimeout(hintTimeout);
+            hintTimeout = null;
+          }
+          
+          // Remove all hint elements
+          candyGroup.children.forEach(child => {
+            if (child.userData.isHint) {
+              candyGroup.remove(child);
+            }
+          });
+        }
+        
+        // Mouse interaction
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        function getMousePosition(event) {
+          // Get mouse position in normalized device coordinates (-1 to +1)
+          if (event.touches) {
+            // Mobile
+            mouse.x = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
+          } else {
+            // Desktop
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+          }
+        }
+        
+        function onMouseDown(event) {
+          if (isAnimating) return;
+          
+          getMousePosition(event);
+          
+          // Update the picking ray with the camera and mouse position
+          raycaster.setFromCamera(mouse, camera);
+          
+          // Calculate objects intersecting the picking ray
+          const intersects = raycaster.intersectObjects(candyGroup.children.filter(obj => !obj.userData.isHint));
+          
+          if (intersects.length > 0) {
+            const selectedObj = intersects[0].object;
+            
+            // Clear any hints
+            clearHints();
+            
+            if (!selectedCandy) {
+              // First selection
+              selectedCandy = selectedObj;
+              
+              // Highlight the selected candy
+              new TWEEN.Tween(selectedCandy.position)
+                .to({ z: 0.2 }, 200)
+                .start();
+              
+              new TWEEN.Tween(selectedCandy.scale)
+                .to({ x: 1.1, y: 1.1, z: 1.1 }, 200)
+                .start();
+            } else {
+              // Second selection - check if it's adjacent to the first
+              const x1 = selectedCandy.userData.x;
+              const y1 = selectedCandy.userData.y;
+              const x2 = selectedObj.userData.x;
+              const y2 = selectedObj.userData.y;
+              
+              // Return first candy to original position
+              new TWEEN.Tween(selectedCandy.position)
+                .to({ z: 0 }, 200)
+                .start();
+              
+              new TWEEN.Tween(selectedCandy.scale)
+                .to({ x: 1, y: 1, z: 1 }, 200)
+                .start();
+              
+              // Check if adjacent
+              if ((Math.abs(x1 - x2) === 1 && y1 === y2) || 
+                  (Math.abs(y1 - y2) === 1 && x1 === x2)) {
+                
+                swapCandies(x1, y1, x2, y2);
+              } else {
+                // Not adjacent, just select the new candy
+                selectedCandy = selectedObj;
+                
+                // Highlight the new selection
+                new TWEEN.Tween(selectedCandy.position)
+                  .to({ z: 0.2 }, 200)
+                  .start();
+                
+                new TWEEN.Tween(selectedCandy.scale)
+                  .to({ x: 1.1, y: 1.1, z: 1.1 }, 200)
+                  .start();
+              }
+            }
+          }
+        }
+        
+        function swapCandies(x1, y1, x2, y2) {
+          isAnimating = true;
+          
+          // Swap in the data structure
+          const temp = {
+            colorIndex: board[y1][x1].colorIndex,
+            special: board[y1][x1].special
+          };
+          
+          board[y1][x1].colorIndex = board[y2][x2].colorIndex;
+          board[y1][x1].special = board[y2][x2].special;
+          
+          board[y2][x2].colorIndex = temp.colorIndex;
+          board[y2][x2].special = temp.special;
+          
+          // Swap meshes visually with animation
+          const candy1 = board[y1][x1].mesh;
+          const candy2 = board[y2][x2].mesh;
+          
+          // Swap userData references
+          [candy1.userData.x, candy2.userData.x] = [candy2.userData.x, candy1.userData.x];
+          [candy1.userData.y, candy2.userData.y] = [candy2.userData.y, candy1.userData.y];
+          
+          // Animate the swap
+          new TWEEN.Tween(candy1.position)
+            .to({
+              x: x2 - BOARD_SIZE/2 + 0.5,
+              y: y2 - BOARD_SIZE/2 + 0.5,
+              z: 0
+            }, 200)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+          
+          new TWEEN.Tween(candy2.position)
+            .to({
+              x: x1 - BOARD_SIZE/2 + 0.5,
+              y: y1 - BOARD_SIZE/2 + 0.5,
+              z: 0
+            }, 200)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+          
+          // Swap references in board array
+          [board[y1][x1].mesh, board[y2][x2].mesh] = [board[y2][x2].mesh, board[y1][x1].mesh];
+          
+          // After animation, check for matches
+          setTimeout(() => {
+            const hadMatches = processMatches();
+            
+            if (!hadMatches) {
+              // Swap back if no matches
+              swapCandies(x1, y1, x2, y2);
+            } else {
+              // Decrement moves
+              movesLeft--;
+              document.getElementById("moves").innerText = movesLeft;
+              
+              // Check if level is completed or game over
+              checkLevelStatus();
+            }
+            
+            // Reset selection
+            selectedCandy = null;
+            isAnimating = false;
+          }, 250);
+        }
+        
+        // Level progression
+        function nextLevel() {
+          currentLevel++;
+          targetScore = Math.floor(targetScore * 1.5); // Increase difficulty
+          movesLeft = 20 + Math.floor(currentLevel * 0.5); // Slightly more moves per level
+          
+          // Hide level complete modal
+          document.getElementById("levelCompleteModal").style.display = "none";
+          document.getElementById("overlay").style.display = "none";
+          
+          // Reset the board
+          initBoard();
+        }
+        
+        // Initialize TWEEN
+        const TWEEN = {
+          _tweens: [],
+          Easing: {
+            Linear: {
+              None: function(k) { return k; }
+            },
+            Quadratic: {
+              Out: function(k) { return k * (2 - k); }
+            },
+            Bounce: {
+              Out: function(k) {
+                if (k < (1 / 2.75)) {
+                  return 7.5625 * k * k;
+                } else if (k < (2 / 2.75)) {
+                  return 7.5625 * (k -= (1.5 / 2.75)) * k + 0.75;
+                } else if (k < (2.5 / 2.75)) {
+                  return 7.5625 * (k -= (2.25 / 2.75)) * k + 0.9375;
+                } else {
+                  return 7.5625 * (k -= (2.625 / 2.75)) * k + 0.984375;
+                }
+              }
+            }
+          },
+          
+          Tween: function(object) {
+            this.object = object;
+            this._valuesStart = {};
+            this._valuesEnd = {};
+            this._duration = 1000;
+            this._easing = TWEEN.Easing.Linear.None;
+            this._startTime = null;
+            this._isPlaying = false;
+            this._onUpdateCallback = null;
+            this._repeat = 0;
+            this._yoyo = false;
+            this._chainedTweens = [];
+            
+            return this;
+          },
+          
+          update: function(time) {
+            if (time === undefined) {
+              time = Date.now();
+            }
+            
+            let i = 0;
+            while (i < TWEEN._tweens.length) {
+              if (TWEEN._tweens[i].update(time)) {
+                i++;
+              } else {
+                TWEEN._tweens.splice(i, 1);
+              }
+            }
+            
+            return true;
+          }
+        };
+        
+        TWEEN.Tween.prototype = {
+          to: function(properties, duration) {
+            this._valuesEnd = properties;
+            if (duration !== undefined) {
+              this._duration = duration;
+            }
+            return this;
+          },
+          
+          start: function(time) {
+            TWEEN._tweens.push(this);
+            this._isPlaying = true;
+            this._startTime = time !== undefined ? time : Date.now();
+            
+            for (const property in this._valuesEnd) {
+              if (this.object[property] === undefined) {
+                continue;
+              }
+              this._valuesStart[property] = this.object[property];
+            }
+            
+            return this;
+          },
+          
+          stop: function() {
+            const index = TWEEN._tweens.indexOf(this);
+            if (index > -1) {
+              TWEEN._tweens.splice(index, 1);
+            }
+            this._isPlaying = false;
+            return this;
+          },
+          
+          update: function(time) {
+            if (!this._isPlaying) return false;
+            
+            const elapsed = (time - this._startTime) / this._duration;
+            
+            if (elapsed > 1) {
+              // Apply final values
+              for (const property in this._valuesEnd) {
+                this.object[property] = this._valuesEnd[property];
+              }
+              
+              if (this._repeat > 0) {
+                if (isFinite(this._repeat)) this._repeat--;
+                
+                // Reassign starting values
+                for (const property in this._valuesStart) {
+                  if (this._yoyo) {
+                    const tmp = this._valuesStart[property];
+                    this._valuesStart[property] = this._valuesEnd[property];
+                    this._valuesEnd[property] = tmp;
+                  } else {
+                    this.object[property] = this._valuesStart[property];
+                  }
+                }
+                
+                this._startTime = time;
+                return true;
+              } else {
+                if (this._chainedTweens.length) {
+                  for (let i = 0; i < this._chainedTweens.length; i++) {
+                    this._chainedTweens[i].start(time);
+                  }
+                }
+                return false;
+              }
+            }
+            
+            // Interpolate values
+            const progress = this._easing(elapsed);
+            for (const property in this._valuesEnd) {
+              this.object[property] = this._valuesStart[property] + 
+                (this._valuesEnd[property] - this._valuesStart[property]) * progress;
+            }
+            
+            if (this._onUpdateCallback) {
+              this._onUpdateCallback(this);
+            }
+            
+            return true;
+          },
+          
+          chain: function() {
+            this._chainedTweens = arguments;
+            return this;
+          },
+          
+          repeat: function(times) {
+            this._repeat = times;
+            return this;
+          },
+          
+          yoyo: function(yoyo) {
+            this._yoyo = yoyo;
+            return this;
+          },
+          
+          easing: function(easing) {
+            this._easing = easing;
+            return this;
+          },
+          
+          onUpdate: function(callback) {
+            this._onUpdateCallback = callback;
+            return this;
+          }
+        };
+        
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+          
+          TWEEN.update();
+          
+          // Rotate the special candies
+          specialCandies.forEach(candy => {
+            if (candy.userData.special === CANDY_COLOR_BOMB) {
+              candy.rotation.y += 0.02;
+              candy.rotation.x += 0.01;
+            }
+          });
+          
+          // Render the scene
+          renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        function onWindowResize() {
+          const aspect = window.innerWidth / window.innerHeight;
+          let width, height;
+          
+          if (aspect > 1) {
+            // Landscape
+            height = 10;
+            width = height * aspect;
+          } else {
+            // Portrait
+            width = 10;
+            height = width / aspect;
+          }
+          
+          camera.left = -width / 2;
+          camera.right = width / 2;
+          camera.top = height / 2;
+          camera.bottom = -height / 2;
+          camera.updateProjectionMatrix();
+          
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Initialize the game
+        function initGame() {
+          score = 0;
+          movesLeft = 20;
+          targetScore = 100;
+          currentLevel = 1;
+          selectedCandy = null;
+          
+          document.getElementById("score").innerText = score;
+          document.getElementById("moves").innerText = movesLeft;
+          document.getElementById("level").innerText = currentLevel;
+          document.getElementById("targetScore").innerText = `Target: ${targetScore}`;
+          document.getElementById("gameStatus").innerText = "";
+          
+          initBoard();
+        }
+        
+        // Event listeners
+        window.addEventListener('resize', onWindowResize);
+        window.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('touchstart', onMouseDown);
+        
+        document.getElementById("resetButton").addEventListener("click", function() {
+          initGame();
+        });
+        
+        document.getElementById("helpButton").addEventListener("click", function() {
+          document.getElementById("helpModal").style.display = "block";
+          document.getElementById("overlay").style.display = "block";
+        });
+        
+        document.getElementById("closeHelp").addEventListener("click", function() {
+          document.getElementById("helpModal").style.display = "none";
+          document.getElementById("overlay").style.display = "none";
+        });
+        
+        document.getElementById("nextLevel").addEventListener("click", nextLevel);
+        
+        document.getElementById("hintButton").addEventListener("click", showHint);
+        
+        // Start the game
+        onWindowResize();
+        initGame();
+        animate();
+  </script>
+</body>
+</html>
